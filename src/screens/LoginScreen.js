@@ -1,16 +1,50 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Image, Text, ImageBackground, Touchable, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Image, Text, ImageBackground, TouchableOpacity} from 'react-native';
 import meditrack from '../../assets/meditrack-logo1.png';
 import background from '../../assets/bg.png'; 
-import background2 from '../../assets/page-turner.png'; 
+import { login } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = () => {
+  // Handle login request
+  const handleLogin = async () => {
+    if(username === '' || password === ''){
+      setErrorMessage('Please enter username and password');
+      return;
+    }
+  // Assuming you get the token from your API after successful login
+  try{
+    const response = await login(username, password);
+    console.log("response",response.status)
+    if(response.status === 400){
+    setErrorMessage(response.data.message);
+    return;
+  }
+  console.log(response.data)
+  const data = response.data
+
+  await AsyncStorage.setItem("token", response.data.token)
+  if (data.token) {
+    // Store the token securely using AsyncStorage
+
+    // Navigate to the Dashboard screen if login is successful
     navigation.navigate('Dashboard');
-  };
+  } else {
+    // Handle error (e.g., show error message)
+      alert('Invalid login');
+    }
+  } catch (error) {
+    setErrorMessage('Invalid username or password');
+  }
+};
+
 
   return (
     <ImageBackground 
@@ -25,9 +59,9 @@ const LoginScreen = ({ navigation }) => {
         />
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
+          placeholder="Username"
+          value={username}
+          onChangeText={setUsername}
         />
         <TextInput
           style={styles.input}
@@ -36,9 +70,14 @@ const LoginScreen = ({ navigation }) => {
           onChangeText={setPassword}
           secureTextEntry
         />
-        <TouchableOpacity style={styles.btn}>
+        
+        {/* Display error message if any */}
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+        <TouchableOpacity style={styles.btn} onPress={handleLogin}>
           <Button title="Login" color={'#044956'} onPress={handleLogin}/>
         </TouchableOpacity>
+        
         <Text style={styles.registerText}>
           Don't have an account? &nbsp;
           <Text 
@@ -84,20 +123,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight:'bold'
-    
   },
   registerLink: {
     color: 'blue',
     textDecorationLine: 'underline',
     fontWeight:'bold'
   },
-  btn:{
+  btn: {
     backgroundColor: '#044956',
     borderRadius: 50,
-    overflow:'hidden',
+    overflow: 'hidden',
     paddingVertical: 3,
-    marginTop:20,
+    marginTop: 20,
     fontSize: 16,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 10,
   }
 });
 
